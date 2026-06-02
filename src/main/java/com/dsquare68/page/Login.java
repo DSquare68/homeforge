@@ -1,5 +1,7 @@
 package com.dsquare68.page;
 
+import com.vaadin.flow.component.Unit;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.login.LoginForm;
@@ -58,8 +60,14 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
                 loginForm.setError(true);
             }
         });
-
-        card.add(title, subtitle, loginForm);
+        
+        Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui -> ui.navigate("register")));
+        signUpButton.getStyle().set("background", "1D1DD1");
+        signUpButton.getStyle().set("width", "150px");
+        signUpButton.getStyle().set("height", "50px");
+        signUpButton.getStyle().set("margin-right", "auto");
+        signUpButton.getStyle().set("margin-left", "auto");
+        card.add(title, subtitle, loginForm,signUpButton);
         add(card);
     }
 
