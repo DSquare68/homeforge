@@ -12,7 +12,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
-@Route("login")
+@Route("")
 public class Login extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm loginForm = new LoginForm();
