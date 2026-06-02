@@ -13,7 +13,9 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+@AnonymousAllowed
 @Route("")
 public class Login extends VerticalLayout implements BeforeEnterObserver {
 
@@ -51,15 +53,8 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
         i18n.getHeader().setDescription("");
 
         loginForm.setI18n(i18n);
+        loginForm.setAction("login");
         loginForm.getStyle().set("width", "100%");
-        loginForm.addLoginListener(e -> {
-            boolean authenticated = authenticate(e.getUsername(), e.getPassword());
-            if (authenticated) {
-                getUI().ifPresent(ui -> ui.navigate(""));
-            } else {
-                loginForm.setError(true);
-            }
-        });
         
         Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui -> ui.navigate("register")));
         signUpButton.getStyle().set("background", "1D1DD1");
