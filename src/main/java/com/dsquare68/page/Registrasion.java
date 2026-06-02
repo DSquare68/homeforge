@@ -77,7 +77,7 @@ public class Registrasion extends VerticalLayout {
                 .set("cursor", "pointer")
                 .set("text-align", "center")
                 .set("margin-top", "1rem");
-        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("login")));
+        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("")));
 
         card.add(title, subtitle, fullName, username, email, password, confirmPassword, registerButton, loginLink);
         add(card);
