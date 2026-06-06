@@ -6,57 +6,42 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-@EnableWebSecurity 
+@EnableWebSecurity
 @Configuration
 public class SecurityConfiguration {
 
+    private final CustomUserDetailsService customUserDetailsService;
+
+    public SecurityConfiguration(CustomUserDetailsService customUserDetailsService) {
+        this.customUserDetailsService = customUserDetailsService;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Configure your static resources with public access
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/public/**")
-            .permitAll()
-            .requestMatchers("/").anonymous()
-            .requestMatchers("/register").anonymous());
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public/**").permitAll()
+                .requestMatchers("/").anonymous()
+                .requestMatchers("/register").anonymous());
 
-        // Configure Vaadin's security using VaadinSecurityConfigurer
-        http.with(VaadinSecurityConfigurer.vaadin(), configurer -> { 
-            // This is important to register your login view to the
-            // navigation access control mechanism:
-            configurer.loginView(Login.class); 
-
-            // You can add any possible extra configurations of your own
-            // here (the following is just an example):
-            // configurer.enableCsrfConfiguration(false);
+        http.with(VaadinSecurityConfigurer.vaadin(), configurer -> {
+            configurer.loginView(Login.class);
         });
 
         return http.build();
     }
 
-    /**
-     * Demo UserDetailsManager which only provides two hardcoded
-     * in memory users and their roles.
-     * NOTE: This shouldn't be used in real world applications.
-     */
     @Bean
-    public UserDetailsManager userDetailsService() {
-    	/*
-    	 * TEMPLATE CODE
-        UserDetails user =
-                User.withUsername("user")
-                        .password("{noop}user")
-                        .roles("USER")
-                        .build();
-        UserDetails admin =
-                User.withUsername("admin")
-                        .password("{noop}admin")
-                        .roles("ADMIN")
-                        .build();
-        return new InMemoryUserDetailsManager(user, admin);
-        */
-    	return new InMemoryUserDetailsManager();
+    public UserDetailsService userDetailsService() {
+        return customUserDetailsService;
     }
 }
