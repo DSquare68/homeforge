@@ -2,6 +2,7 @@ package com.dsquare68.security;
 
 import com.dsquare68.page.Login;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,7 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
 
     private final CustomUserDetailsService customUserDetailsService;
-
+    
     public SecurityConfiguration(CustomUserDetailsService customUserDetailsService) {
         this.customUserDetailsService = customUserDetailsService;
     }
@@ -26,6 +27,8 @@ public class SecurityConfiguration {
         return new BCryptPasswordEncoder();
     }
 
+    
+    
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth

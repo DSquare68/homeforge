@@ -2,6 +2,7 @@ package com.dsquare68.security;
 
 import com.dsquare68.model.User;
 import com.dsquare68.repository.UserRepository;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,4 +31,5 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .authorities(Collections.singletonList(new SimpleGrantedAuthority(user.getRole())))
                 .build();
     }
+    
 }
