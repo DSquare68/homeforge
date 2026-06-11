@@ -1,8 +1,8 @@
-package com.github.dsquare68.repository;
+package com.github.dsquare68.homeforge.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.github.dsquare68.model.User;
+import com.github.dsquare68.homeforge.model.User;
 
 import java.util.Optional;
 

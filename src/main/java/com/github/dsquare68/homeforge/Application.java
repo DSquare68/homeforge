@@ -1,4 +1,4 @@
-package com.github.dsquare68;
+package com.github.dsquare68.homeforge;
 
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
