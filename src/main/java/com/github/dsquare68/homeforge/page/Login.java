@@ -1,4 +1,4 @@
-package com.github.dsquare68.page;
+package com.github.dsquare68.homeforge.page;
 
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;

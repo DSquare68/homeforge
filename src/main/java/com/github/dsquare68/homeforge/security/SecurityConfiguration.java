@@ -1,6 +1,6 @@
-package com.github.dsquare68.security;
+package com.github.dsquare68.homeforge.security;
 
-import com.github.dsquare68.page.Login;
+import com.github.dsquare68.homeforge.page.Login;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 
 import org.springframework.context.annotation.Bean;

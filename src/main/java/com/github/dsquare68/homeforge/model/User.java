@@ -1,4 +1,4 @@
-package com.github.dsquare68.model;
+package com.github.dsquare68.homeforge.model;
 
 import jakarta.persistence.*;
 
