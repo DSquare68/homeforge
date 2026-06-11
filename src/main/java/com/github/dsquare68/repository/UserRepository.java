@@ -1,7 +1,8 @@
-package com.dsquare68.repository;
+package com.github.dsquare68.repository;
 
-import com.dsquare68.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.github.dsquare68.model.User;
 
 import java.util.Optional;
 

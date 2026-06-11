@@ -1,13 +1,13 @@
-package com.dsquare68.security;
-
-import com.dsquare68.model.User;
-import com.dsquare68.repository.UserRepository;
+package com.github.dsquare68.security;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import com.github.dsquare68.model.User;
+import com.github.dsquare68.repository.UserRepository;
 
 import java.util.Collections;
 
