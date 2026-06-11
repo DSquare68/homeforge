@@ -1,4 +1,4 @@
-package com.dsquare68.model;
+package com.github.dsquare68.model;
 
 import jakarta.persistence.*;
 

@@ -1,5 +1,6 @@
-package com.dsquare68.page;
+package com.github.dsquare68.page;
 
+import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -9,11 +10,10 @@ import jakarta.annotation.security.RolesAllowed;
 
 @RolesAllowed("USER")
 @Route("home")
-public class Home extends VerticalLayout {
+public class Home extends AppLayout {
 
 	public Home() {
-		add(new H1("Welcome to HomeForge!"));
-		add(new Paragraph("Your one-stop solution for home management."));
+
 	}
 	
 }
