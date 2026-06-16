@@ -13,7 +13,7 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 @StyleSheet(Lumo.STYLESHEET)
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
 @StyleSheet("styles.css") // Your custom styles
-@EnableJpaRepositories(basePackages = "com.github.dsquare68.repository")
+@EnableJpaRepositories(basePackages = "com.github.dsquare68.homeforge.repository")
 public class Application implements AppShellConfigurator {
 
     public static void main(String[] args) {
