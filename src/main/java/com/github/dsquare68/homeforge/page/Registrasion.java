@@ -1,5 +1,12 @@
 package com.github.dsquare68.homeforge.page;
 
+import java.time.LocalDateTime;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.github.dsquare68.homeforge.model.User;
+import com.github.dsquare68.homeforge.security.Roles;
+import com.github.dsquare68.homeforge.services.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
@@ -23,7 +30,10 @@ public class Registrasion extends VerticalLayout {
     private final PasswordField password = new PasswordField("Password");
     private final PasswordField confirmPassword = new PasswordField("Confirm Password");
 
-    public Registrasion() {
+    @Autowired
+    UserService userService;
+    
+    public Registrasion(UserService userService) {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -99,7 +109,7 @@ public class Registrasion extends VerticalLayout {
         }
 
         confirmPassword.setInvalid(false);
-        // TODO: persist user via a UserService
+        userService.addUser(new User(fullName.getValue(),username.getValue(),email.getValue(),password.getValue(),LocalDateTime.now(),LocalDateTime.now(),Roles.USER.name()));
         showNotification("Account created! You can now sign in.", NotificationVariant.LUMO_SUCCESS);
         getUI().ifPresent(ui -> ui.navigate("login"));
     }
