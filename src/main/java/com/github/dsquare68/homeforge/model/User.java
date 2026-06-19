@@ -19,7 +19,9 @@ public class User {
 		this.lastLoginAt=first;
 		this.role=r;
 	}
-
+	public User() {
+		
+	}
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,5 +46,5 @@ public class User {
     
     @Column(nullable = false)
     private LocalDateTime lastLoginAt;
-    
+
 }
