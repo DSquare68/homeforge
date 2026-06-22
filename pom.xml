@@ -9,6 +9,7 @@
     <properties>
         <java.version>21</java.version>
         <vaadin.version>25.1.7</vaadin.version>
+        <pf4j.version>3.12.0</pf4j.version>
     </properties>
     
     <parent>
@@ -31,6 +32,14 @@
     </dependencyManagement>
     
     <dependencies>
+        <!-- HUB Plugin SPI – defines HubPlugin, PluginMetadata, HubApi, etc.
+             Plugins depend on this at [provided] scope; HUB depends on it at compile scope
+             so the host classes are available at runtime for both the hub and loaded plugins. -->
+        <dependency>
+            <groupId>com.github.dsquare68</groupId>
+            <artifactId>homeforge-api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-core</artifactId>
@@ -73,6 +82,12 @@
 		    <artifactId>lombok</artifactId>
 		    <optional>true</optional>
 		</dependency>
+        <!-- PF4J: host must declare compile scope; plugins declare it as provided -->
+        <dependency>
+            <groupId>org.pf4j</groupId>
+            <artifactId>pf4j</artifactId>
+            <version>${pf4j.version}</version>
+        </dependency>
     </dependencies>
     
     <build>

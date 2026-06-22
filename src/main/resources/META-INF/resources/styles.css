@@ -1,1 +1,121 @@
-/* Add your styles here */
+/* ===== Navbar ===== */
+.hub-navbar {
+    width: 100%;
+    padding: 0 var(--lumo-space-m);
+    box-sizing: border-box;
+}
+
+.navbar-title {
+    font-size: var(--lumo-font-size-xl);
+    margin: 0;
+    margin-right: var(--lumo-space-xl);
+    color: var(--lumo-primary-text-color);
+    white-space: nowrap;
+}
+
+/* ===== Navbar navigation links ===== */
+.hub-nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+}
+
+.hub-nav-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--lumo-secondary-text-color);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+}
+
+.hub-nav-link .hub-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.hub-nav-link:hover {
+    background: var(--lumo-contrast-5pct);
+    color: var(--lumo-body-text-color);
+}
+
+.hub-nav-link[highlight] {
+    color: var(--lumo-primary-color);
+    background: var(--lumo-primary-color-10pct);
+}
+
+/* ===== Drawer / Sidebar ===== */
+.hub-drawer {
+    width: 100%;
+    height: 100%;
+    background: var(--lumo-base-color);
+    border-right: 1px solid var(--lumo-contrast-10pct);
+}
+
+.hub-sidebar-header {
+    display: block;
+    padding: var(--lumo-space-m) var(--lumo-space-l);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--lumo-tertiary-text-color);
+}
+
+/* ===== Plugin SideNav ===== */
+.hub-sidenav {
+    width: 100%;
+    padding: 0 var(--lumo-space-s);
+    box-sizing: border-box;
+}
+
+/* Items: generous padding, big icons */
+.hub-sidenav-item::part(content) {
+    padding: var(--lumo-space-m) var(--lumo-space-m);
+    gap: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-m);
+    font-weight: 500;
+}
+
+.hub-sidenav-item [slot='prefix'] .hub-icon,
+.hub-sidenav-item [slot='prefix'] img.hub-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--lumo-secondary-text-color);
+    flex-shrink: 0;
+}
+
+.hub-sidenav-item[active]::part(content) {
+    color: var(--lumo-primary-color);
+    background: var(--lumo-primary-color-10pct);
+    border-radius: var(--lumo-border-radius-m);
+}
+
+.hub-sidenav-item[active] [slot='prefix'] .hub-icon {
+    color: var(--lumo-primary-color);
+}
+
+.hub-sidenav-item:not([active]):hover::part(content) {
+    background: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-m);
+}
+
+/* Empty plugin list */
+.hub-sidebar-empty {
+    display: block;
+    padding: var(--lumo-space-m) var(--lumo-space-l);
+    color: var(--lumo-tertiary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-style: italic;
+}
+
+/* ===== Main content area ===== */
+.hub-content {
+    padding: var(--lumo-space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+}
