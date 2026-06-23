@@ -53,6 +53,17 @@ public class PluginManagerService {
     }
 
     /**
+     * Returns active plugin instances sorted by display name.
+     * Use when both metadata and icon bytes are needed (e.g. sidebar, plugin forge).
+     */
+    public List<HubPlugin> getActivePluginInstances() {
+        return pluginManager.getExtensions(HubPlugin.class)
+                .stream()
+                .sorted((a, b) -> a.getMetadata().name().compareToIgnoreCase(b.getMetadata().name()))
+                .toList();
+    }
+
+    /**
      * Returns the underlying PF4J manager for advanced operations
      * (install, uninstall, enable/disable) used by the plugin management page.
      */
