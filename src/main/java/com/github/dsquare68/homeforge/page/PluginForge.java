@@ -1,17 +1,20 @@
 package com.github.dsquare68.homeforge.page;
 
 import com.github.dsquare68.homeforge.plugin.PluginManagerService;
+import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 
 import jakarta.annotation.security.RolesAllowed;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @RolesAllowed("USER")
@@ -21,19 +24,21 @@ public class PluginForge extends VerticalLayout {
     public PluginForge(PluginManagerService pluginManagerService) {
         add(new H2("Installed Plugins"));
 
-        List<PluginMetadata> plugins = pluginManagerService.getActivePlugins();
+        List<HubPlugin> plugins = pluginManagerService.getActivePluginInstances();
 
         if (plugins.isEmpty()) {
             add(new Paragraph("No plugins installed. Upload a plugin jar to get started."));
             return;
         }
 
-        for (PluginMetadata plugin : plugins) {
+        for (HubPlugin plugin : plugins) {
             add(buildPluginCard(plugin));
         }
     }
 
-    private VerticalLayout buildPluginCard(PluginMetadata plugin) {
+    private VerticalLayout buildPluginCard(HubPlugin plugin) {
+        PluginMetadata meta = plugin.getMetadata();
+
         VerticalLayout card = new VerticalLayout();
         card.getStyle()
                 .set("border", "1px solid var(--lumo-contrast-20pct)")
@@ -44,20 +49,19 @@ public class PluginForge extends VerticalLayout {
         HorizontalLayout header = new HorizontalLayout();
         header.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 
-        if (plugin.icon() != null) {
-            try {
-                header.add(VaadinIcon.valueOf(
-                        plugin.icon().replace("vaadin:", "").replace("-", "_").toUpperCase()
-                ).create());
-            } catch (IllegalArgumentException ignored) {
-                // Unknown icon name — skip silently
-            }
+        byte[] iconBytes = plugin.getIconBytes();
+        if (iconBytes != null) {
+            StreamResource res = new StreamResource("icon", () -> new ByteArrayInputStream(iconBytes));
+            Image icon = new Image(res, meta.name());
+            icon.setWidth("32px");
+            icon.setHeight("32px");
+            header.add(icon);
         }
 
-        Span name = new Span(plugin.name());
+        Span name = new Span(meta.name());
         name.getStyle().set("font-weight", "bold").set("font-size", "var(--lumo-font-size-l)");
 
-        Span version = new Span("v" + plugin.version());
+        Span version = new Span("v" + meta.version());
         version.getStyle()
                 .set("font-size", "var(--lumo-font-size-s)")
                 .set("color", "var(--lumo-secondary-text-color)")
@@ -66,15 +70,15 @@ public class PluginForge extends VerticalLayout {
         header.add(name, version);
 
         // Description
-        Paragraph description = new Paragraph(plugin.description());
+        Paragraph description = new Paragraph(meta.description());
         description.getStyle().set("margin", "0");
 
         // Path and schema badges
-        HorizontalLayout meta = new HorizontalLayout();
-        meta.add(badge("Path: " + plugin.path()));
-        meta.add(badge("Schema: " + plugin.schema()));
+        HorizontalLayout metaRow = new HorizontalLayout();
+        metaRow.add(badge("Path: " + meta.path()));
+        metaRow.add(badge("Schema: " + meta.schema()));
 
-        card.add(header, description, meta);
+        card.add(header, description, metaRow);
         return card;
     }
 
