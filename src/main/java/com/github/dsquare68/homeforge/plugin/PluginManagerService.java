@@ -27,6 +27,7 @@ public class PluginManagerService {
     private String pluginsDir;
 
     private PluginManager pluginManager;
+    
 
     @PostConstruct
     public void init() {

@@ -3,6 +3,7 @@ package com.github.dsquare68.homeforge.page;
 import java.util.List;
 
 import com.github.dsquare68.homeforge.plugin.PluginManagerService;
+import com.github.dsquare68.homeforge.plugin.PluginMetaClient;
 import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
 import com.vaadin.flow.component.Component;
