@@ -14,8 +14,7 @@ public class UserService {
 	
 	@Autowired
 	UserRepository userRepository;
-	@
-	Autowired
+	@Autowired
 	PasswordEncoder passwordEncoder;
 	
 	public boolean addUser(User user) {
