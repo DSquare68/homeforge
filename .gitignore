@@ -16,3 +16,4 @@ src/main/frontend/generated/
 vite.generated.ts
 CLAUDE.md
 src/main/resources/secrets.properties
+.env
