@@ -23,12 +23,14 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 /**
- * Normal sign-up, available only after the first-run {@link SignIn} setup
- * has created an account. Until then, beforeEnter forwards here to /sign-in.
+ * First-run setup: creates the initial (admin) account and the PostgreSQL
+ * connection details HUB will use. Only reachable while no user exists yet —
+ * once the first account is created, {@link #beforeEnter} routes here away
+ * to /login and normal sign-ups go through {@link Registrasion} instead.
  */
 @AnonymousAllowed
-@Route("register")
-public class Registrasion extends VerticalLayout implements BeforeEnterObserver {
+@Route("/sign-in")
+public class SignIn extends VerticalLayout implements BeforeEnterObserver {
 
     private final TextField fullName = new TextField("Full Name");
     private final TextField username = new TextField("Username");
@@ -36,10 +38,14 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
     private final PasswordField password = new PasswordField("Password");
     private final PasswordField confirmPassword = new PasswordField("Confirm Password");
 
+    private final TextField dbUser = new TextField("PostgreSQL User");
+    private final PasswordField dbPassword = new PasswordField("PostgreSQL Password");
+    private final TextField dbSchema = new TextField("PostgreSQL Schema");
+
     @Autowired
     UserService userService;
-    
-    public Registrasion(UserService userService) {
+
+    public SignIn(UserService userService) {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -85,6 +91,24 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
         confirmPassword.setRequired(true);
         confirmPassword.getStyle().set("margin-bottom", "1rem");
 
+        Paragraph dbSubtitle = new Paragraph("PostgreSQL connection");
+        dbSubtitle.getStyle()
+                .set("color", "var(--lumo-secondary-text-color)")
+                .set("margin", "0 0 0.5rem 0");
+
+        dbUser.setWidthFull();
+        dbUser.setRequired(true);
+        dbUser.getStyle().set("margin-bottom", "0.5rem");
+
+        dbPassword.setWidthFull();
+        dbPassword.setRequired(true);
+        dbPassword.getStyle().set("margin-bottom", "0.5rem");
+
+        dbSchema.setWidthFull();
+        dbSchema.setRequired(true);
+        dbSchema.setValue("hub_schema");
+        dbSchema.getStyle().set("margin-bottom", "1rem");
+
         Button registerButton = new Button("Create Account", e -> handleRegister());
         registerButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         registerButton.setWidthFull();
@@ -95,15 +119,17 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
                 .set("cursor", "pointer")
                 .set("text-align", "center")
                 .set("margin-top", "1rem");
-        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("")));
+        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("login")));
 
-        card.add(title, subtitle, fullName, username, email, password, confirmPassword, registerButton, loginLink);
+        card.add(title, subtitle, fullName, username, email, password, confirmPassword,
+                dbSubtitle, dbUser, dbPassword, dbSchema, registerButton, loginLink);
         add(card);
     }
 
     private void handleRegister() {
         if (fullName.isEmpty() || username.isEmpty() || email.isEmpty()
-                || password.isEmpty() || confirmPassword.isEmpty()) {
+                || password.isEmpty() || confirmPassword.isEmpty()
+                || dbUser.isEmpty() || dbPassword.isEmpty() || dbSchema.isEmpty()) {
             showNotification("Please fill in all fields.", NotificationVariant.LUMO_ERROR);
             return;
         }
@@ -115,7 +141,8 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
         }
 
         confirmPassword.setInvalid(false);
-        userService.addUser(new User(fullName.getValue(),username.getValue(),email.getValue(),password.getValue(),LocalDateTime.now(),LocalDateTime.now(),Roles.USER.name()));
+        userService.addUser(new User(fullName.getValue(), username.getValue(), email.getValue(),
+                password.getValue(), LocalDateTime.now(), LocalDateTime.now(), Roles.ADMIN.name()));
         showNotification("Account created! You can now sign in.", NotificationVariant.LUMO_SUCCESS);
         getUI().ifPresent(ui -> ui.navigate("login"));
     }
@@ -127,8 +154,8 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        if (!userService.hasUsers()) {
-            event.forwardTo("sign-in");
+        if (userService.hasUsers()) {
+            event.forwardTo("login");
         }
     }
 }

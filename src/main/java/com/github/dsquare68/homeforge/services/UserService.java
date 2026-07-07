@@ -42,4 +42,8 @@ public class UserService {
 			return null;
 	}
 
+	public boolean hasUsers() {
+		return userRepository.count() > 0;
+	}
+
 }

@@ -36,7 +36,8 @@ public class SecurityConfiguration {
                 // request 403 once the user logs in ("Connection lost"). Per-view access
                 // is enforced by Vaadin annotations (@AnonymousAllowed / @PermitAll).
                 .requestMatchers("/").permitAll()
-        		.requestMatchers("/register").permitAll());
+        		.requestMatchers("/register").permitAll()
+        		.requestMatchers("/sign-in").permitAll());
 
         http.with(VaadinSecurityConfigurer.vaadin(), configurer -> {
             configurer.loginView(Login.class);
