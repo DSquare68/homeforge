@@ -82,7 +82,8 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
         login.setAction("login");
         //login.addLoginListener(e->doLogin(e));
         
-        Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui -> ui.navigate("register")));
+        Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui ->
+                ui.navigate(userService.hasUsers() ? "register" : "sign-in")));
         signUpButton.getStyle().set("background", "1D1DD1");
         signUpButton.getStyle().set("width", "150px");
         signUpButton.getStyle().set("height", "50px");
