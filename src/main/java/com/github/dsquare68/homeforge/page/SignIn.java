@@ -1,9 +1,17 @@
 package com.github.dsquare68.homeforge.page;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
+import com.github.dsquare68.homeforge.Application;
+import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.github.dsquare68.homeforge.model.User;
 import com.github.dsquare68.homeforge.security.Roles;
 import com.github.dsquare68.homeforge.services.UserService;
@@ -44,8 +52,12 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
 
     @Autowired
     UserService userService;
+    @Autowired
+    HubDBProperties hubDBProperties;
+    @Autowired
+    ApplicationContext applicationContext;
 
-    public SignIn(UserService userService) {
+    public SignIn(UserService userService, HubDBProperties hubDBProperties, ApplicationContext applicationContext) {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -141,10 +153,47 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
         }
 
         confirmPassword.setInvalid(false);
+
+        // A running instance already has its DataSource wired up from whatever
+        // was resolved at boot; writing user.properties now only takes effect
+        // on the next restart (Spring config is fixed for the process lifetime).
+        boolean wasConfigured = hubDBProperties.isConfigured();
+
+        if (!saveDatabaseConfig()) {
+            showNotification("Failed to save database configuration.", NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        if (!wasConfigured) {
+            showNotification("Database configuration saved. Restart HomeForge, then sign in again to finish creating your account.",
+                    NotificationVariant.LUMO_SUCCESS);
+            return;
+        }
+
         userService.addUser(new User(fullName.getValue(), username.getValue(), email.getValue(),
                 password.getValue(), LocalDateTime.now(), LocalDateTime.now(), Roles.ADMIN.name()));
         showNotification("Account created! You can now sign in.", NotificationVariant.LUMO_SUCCESS);
         getUI().ifPresent(ui -> ui.navigate("login"));
+    }
+
+    private boolean saveDatabaseConfig() {
+        Properties properties = new Properties();
+        properties.setProperty("DB_USER", dbUser.getValue());
+        properties.setProperty("DB_PASSWORD", dbPassword.getValue());
+        properties.setProperty("DB_SCHEMA", dbSchema.getValue());
+        properties.setProperty("JPA_DDL_AUTO", "update");
+
+        try (FileOutputStream out = new FileOutputStream("src/main/resources/user.properties")) {
+            properties.store(out, "PostgreSQL connection entered during first-run setup");
+            ConfigurableApplicationContext ctx =
+                    (ConfigurableApplicationContext) applicationContext;
+
+            ctx.close();
+            SpringApplication.run(Application.class);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private void showNotification(String message, NotificationVariant variant) {
@@ -154,7 +203,9 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        if (userService.hasUsers()) {
+        // Without a configured DB there is no way any user could already
+        // exist, so skip the query entirely and let first-run setup proceed.
+        if (!hubDBProperties.isConfigured()) {
             event.forwardTo("login");
         }
     }

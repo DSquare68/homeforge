@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 
+import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.github.dsquare68.homeforge.model.User;
 import com.github.dsquare68.homeforge.repository.UserRepository;
 import com.github.dsquare68.homeforge.services.UserService;
@@ -39,11 +40,13 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 public class Login extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginOverlay login = new LoginOverlay();
-    
+
     @Autowired
     UserService userService;
+    @Autowired
+    HubDBProperties hubDBProperties;
 
-    public Login(UserService userService) {
+    public Login(UserService userService, HubDBProperties hubDBProperties) {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -83,7 +86,7 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
         //login.addLoginListener(e->doLogin(e));
         
         Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui ->
-                ui.navigate(userService.hasUsers() ? "register" : "sign-in")));
+                ui.navigate(!hubDBProperties.isConfigured() ? "register" : "sign-in")));
         signUpButton.getStyle().set("background", "1D1DD1");
         signUpButton.getStyle().set("width", "150px");
         signUpButton.getStyle().set("height", "50px");
@@ -127,6 +130,13 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
 
 	@Override
     public void beforeEnter(BeforeEnterEvent event) {
+        // No PostgreSQL connection has been set up yet, so there is nothing for
+        // SQL-backed login to authenticate against — send the user to first-run
+        // setup instead of letting them submit the login form.
+        if (!hubDBProperties.isConfigured()) {
+            event.forwardTo("sign-in");
+            return;
+        }
         if (event.getLocation().getQueryParameters().getParameters().containsKey("error")) {
             login.setError(true);
         }
