@@ -1,5 +1,6 @@
 package com.github.dsquare68.homeforge.page;
 
+import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -24,7 +25,7 @@ public class Welcome extends VerticalLayout {
 
 		Paragraph subtitle = new Paragraph("Please sign in to your account");
 		Button signInButton = new Button("Sign In", event -> getUI().ifPresent(ui -> ui.navigate("login")));
-		Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui -> ui.navigate("register")));
+		Button signUpButton = new Button("Sign Up", event -> getUI().ifPresent(ui -> ui.navigate(new HubDBProperties().isConfigured() ? "register" : "sign-in")));
 		subtitle.getStyle()
 				.set("color", "var(--lumo-secondary-text-color)")
 				.set("margin", "0 0 1.5rem 0")

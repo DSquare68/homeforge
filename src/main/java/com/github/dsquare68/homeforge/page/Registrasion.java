@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.github.dsquare68.homeforge.model.User;
 import com.github.dsquare68.homeforge.security.Roles;
 import com.github.dsquare68.homeforge.services.UserService;
@@ -38,8 +39,10 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
 
     @Autowired
     UserService userService;
-    
-    public Registrasion(UserService userService) {
+    @Autowired
+    HubDBProperties hubDBProperties;
+
+    public Registrasion(UserService userService, HubDBProperties hubDBProperties) {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -127,7 +130,9 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        if (!userService.hasUsers()) {
+        // No DB configured yet means no user could possibly exist yet either —
+        // skip the query and send straight to first-run setup.
+        if (!hubDBProperties.isConfigured()) {
             event.forwardTo("sign-in");
         }
     }
