@@ -6,11 +6,7 @@ import java.time.LocalDateTime;
 import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 
-import com.github.dsquare68.homeforge.Application;
 import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.github.dsquare68.homeforge.model.User;
 import com.github.dsquare68.homeforge.security.Roles;
@@ -31,10 +27,13 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 /**
- * First-run setup: creates the initial (admin) account and the PostgreSQL
- * connection details HUB will use. Only reachable while no user exists yet —
- * once the first account is created, {@link #beforeEnter} routes here away
- * to /login and normal sign-ups go through {@link Registrasion} instead.
+ * First-run setup: creates the initial (admin) account and, if the database
+ * isn't already reachable (e.g. a bare-metal/VM deploy rather than
+ * docker-compose, where DB_USER/DB_PASSWORD are already resolved before this
+ * page ever loads), the PostgreSQL connection details HUB will use. Only
+ * reachable while no user exists yet — once the first account is created,
+ * {@link #beforeEnter} routes here away to /login and normal sign-ups go
+ * through {@link Registrasion} instead.
  */
 @AnonymousAllowed
 @Route("/sign-in")
@@ -54,10 +53,12 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
     UserService userService;
     @Autowired
     HubDBProperties hubDBProperties;
-    @Autowired
-    ApplicationContext applicationContext;
 
-    public SignIn(UserService userService, HubDBProperties hubDBProperties, ApplicationContext applicationContext) {
+    private final boolean needsDatabaseSetup;
+
+    public SignIn(UserService userService, HubDBProperties hubDBProperties) {
+        this.needsDatabaseSetup = !hubDBProperties.isConfigured();
+
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -120,7 +121,7 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
         dbSchema.setRequired(true);
         dbSchema.setValue("hub_schema");
         dbSchema.getStyle().set("margin-bottom", "1rem");
-
+        
         Button registerButton = new Button("Create Account", e -> handleRegister());
         registerButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         registerButton.setWidthFull();
@@ -141,7 +142,7 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
     private void handleRegister() {
         if (fullName.isEmpty() || username.isEmpty() || email.isEmpty()
                 || password.isEmpty() || confirmPassword.isEmpty()
-                || dbUser.isEmpty() || dbPassword.isEmpty() || dbSchema.isEmpty()) {
+                || (needsDatabaseSetup && (dbUser.isEmpty() || dbPassword.isEmpty() || dbSchema.isEmpty()))) {
             showNotification("Please fill in all fields.", NotificationVariant.LUMO_ERROR);
             return;
         }
@@ -154,17 +155,15 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
 
         confirmPassword.setInvalid(false);
 
-        // A running instance already has its DataSource wired up from whatever
-        // was resolved at boot; writing user.properties now only takes effect
-        // on the next restart (Spring config is fixed for the process lifetime).
-        boolean wasConfigured = hubDBProperties.isConfigured();
-
-        if (!saveDatabaseConfig()) {
-            showNotification("Failed to save database configuration.", NotificationVariant.LUMO_ERROR);
-            return;
-        }
-
-        if (!wasConfigured) {
+        if (needsDatabaseSetup) {
+            if (!saveDatabaseConfig()) {
+                showNotification("Failed to save database configuration.", NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            // Spring's Environment is fixed for the life of the process, so the
+            // connection details just written only take effect after a restart —
+            // the DB isn't usable in this running instance yet, so the account
+            // can't be created until then.
             showNotification("Database configuration saved. Restart HomeForge, then sign in again to finish creating your account.",
                     NotificationVariant.LUMO_SUCCESS);
             return;
@@ -185,11 +184,6 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
 
         try (FileOutputStream out = new FileOutputStream("src/main/resources/user.properties")) {
             properties.store(out, "PostgreSQL connection entered during first-run setup");
-            ConfigurableApplicationContext ctx =
-                    (ConfigurableApplicationContext) applicationContext;
-
-            ctx.close();
-            SpringApplication.run(Application.class);
             return true;
         } catch (IOException e) {
             return false;

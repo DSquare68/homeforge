@@ -23,6 +23,10 @@ services:
     environment:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_SCHEMA: ${DB_SCHEMA:-hub_schema}
+      # docker-compose users provide DB_USER/DB_PASSWORD via .env up front (no
+      # walk-up /sign-in setup needed), so it's safe to always migrate the schema.
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/home_forge_db
       URL: ${PLUGIN_STORE_URL}
       SERWER_PASSWORD: ${SERWER_PASSWORD}

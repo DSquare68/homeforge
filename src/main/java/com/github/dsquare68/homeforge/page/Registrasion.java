@@ -132,7 +132,7 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
     public void beforeEnter(BeforeEnterEvent event) {
         // No DB configured yet means no user could possibly exist yet either —
         // skip the query and send straight to first-run setup.
-        if (!hubDBProperties.isConfigured()) {
+        if (!hubDBProperties.isConfigured() || !userService.hasUsers()) {
             event.forwardTo("sign-in");
         }
     }
