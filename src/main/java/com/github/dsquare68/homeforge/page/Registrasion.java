@@ -98,7 +98,7 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
                 .set("cursor", "pointer")
                 .set("text-align", "center")
                 .set("margin-top", "1rem");
-        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("")));
+        loginLink.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("login")));
 
         card.add(title, subtitle, fullName, username, email, password, confirmPassword, registerButton, loginLink);
         add(card);
@@ -132,7 +132,7 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
     public void beforeEnter(BeforeEnterEvent event) {
         // No DB configured yet means no user could possibly exist yet either —
         // skip the query and send straight to first-run setup.
-        if (!hubDBProperties.isConfigured() || !userService.hasUsers()) {
+        if (!hubDBProperties.isConfigured()) {
             event.forwardTo("sign-in");
         }
     }
