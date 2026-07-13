@@ -19,6 +19,7 @@ import com.github.dsquare68.homeforge.services.UserService;
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.login.AbstractLogin.LoginEvent;
 import com.vaadin.flow.component.login.LoginForm;
@@ -65,18 +66,15 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
         H1 title = new H1("HomeForge");
         title.getStyle()
                 .set("margin", "0 0 0.25rem 0")
-                .set("font-size", "1.75rem");
-
-        Paragraph subtitle = new Paragraph("Sign in to your account");
-        subtitle.getStyle()
-                .set("color", "var(--lumo-secondary-text-color)")
-                .set("margin", "0 0 1.5rem 0");
+                .set("font-size", "3rem");
 
         LoginI18n i18n = LoginI18n.createDefault();
         i18n.setHeader(new LoginI18n.Header());
         i18n.getHeader().setTitle("");
         i18n.getHeader().setDescription("");
 
+        login.setTitle(title);
+        login.setDescription("Sign in to your account");
         login.setI18n(i18n);
         login.setOpened(true);
         // No setAction(...) here on purpose: with an action set the form does a
@@ -92,7 +90,7 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
         signUpButton.getStyle().set("height", "50px");
         signUpButton.getStyle().set("margin-right", "auto");
         signUpButton.getStyle().set("margin-left", "auto");
-        card.add(title, subtitle, login,signUpButton);
+        card.add(login, signUpButton);
         add(card);
     }
 
