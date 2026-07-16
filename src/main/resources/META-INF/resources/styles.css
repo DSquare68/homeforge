@@ -119,3 +119,38 @@
     max-width: 1200px;
     margin: 0 auto;
 }
+
+/* ===== Home button — "back to dashboard" chip for standalone pages ===== */
+.hub-home-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-l);
+    border: 1px solid var(--lumo-contrast-10pct);
+    background: var(--lumo-base-color);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+    box-shadow: var(--lumo-box-shadow-xs);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s, border-color 0.15s;
+}
+
+.hub-home-button .hub-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--lumo-primary-color);
+}
+
+.hub-home-button:hover {
+    color: var(--lumo-primary-text-color);
+    border-color: var(--lumo-primary-color-50pct);
+    box-shadow: var(--lumo-box-shadow-s);
+    transform: translateY(-1px);
+}
+
+.hub-home-button:active {
+    transform: translateY(0);
+    box-shadow: var(--lumo-box-shadow-xs);
+}

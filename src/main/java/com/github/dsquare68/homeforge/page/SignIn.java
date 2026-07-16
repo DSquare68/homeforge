@@ -170,7 +170,7 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
         }
 
         userService.addUser(new User(fullName.getValue(), username.getValue(), email.getValue(),
-                password.getValue(), LocalDateTime.now(), LocalDateTime.now(), Roles.ADMIN.name()));
+                password.getValue(), LocalDateTime.now(), LocalDateTime.now(), Roles.ADMIN.name(),null));
         showNotification("Account created! You can now sign in.", NotificationVariant.LUMO_SUCCESS);
         getUI().ifPresent(ui -> ui.navigate("login"));
     }

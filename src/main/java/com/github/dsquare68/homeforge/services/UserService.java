@@ -46,4 +46,8 @@ public class UserService {
 		return userRepository.count() > 0;
 	}
 
+	public User updateUser(User user) {
+		return userRepository.save(user);
+	}
+
 }
