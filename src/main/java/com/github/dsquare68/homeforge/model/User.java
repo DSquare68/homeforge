@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 public class User {
 
-    public User(String f, String u, String e, String p, LocalDateTime now, LocalDateTime first, String r) {
+    public User(String f, String u, String e, String p, LocalDateTime now, LocalDateTime first, String r,String a) {
 		this.fullName=f;
     	this.username=u;
 		this.email=e;
@@ -18,6 +18,7 @@ public class User {
 		this.createdAt=now;
 		this.lastLoginAt=first;
 		this.role=r;
+		this.avatarUrl=a;
 	}
 	public User() {
 		
@@ -43,8 +44,9 @@ public class User {
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
-    
+
     @Column(nullable = false)
     private LocalDateTime lastLoginAt;
-
+    
+    private String avatarUrl;
 }

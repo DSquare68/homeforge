@@ -1,5 +1,6 @@
 package com.github.dsquare68.homeforge.page;
 
+import com.github.dsquare68.homeforge.component.HomeButton;
 import com.github.dsquare68.homeforge.plugin.PluginManagerService;
 import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
@@ -22,6 +23,7 @@ import java.util.List;
 public class PluginForge extends VerticalLayout {
 
     public PluginForge(PluginManagerService pluginManagerService) {
+        add(new HomeButton());
         add(new H2("Installed Plugins"));
 
         List<HubPlugin> plugins = pluginManagerService.getActivePluginInstances();

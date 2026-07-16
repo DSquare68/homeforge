@@ -118,7 +118,7 @@ public class Registrasion extends VerticalLayout implements BeforeEnterObserver 
         }
 
         confirmPassword.setInvalid(false);
-        userService.addUser(new User(fullName.getValue(),username.getValue(),email.getValue(),password.getValue(),LocalDateTime.now(),LocalDateTime.now(),Roles.USER.name()));
+        userService.addUser(new User(fullName.getValue(),username.getValue(),email.getValue(),password.getValue(),LocalDateTime.now(),LocalDateTime.now(),Roles.USER.name(),null));
         showNotification("Account created! You can now sign in.", NotificationVariant.LUMO_SUCCESS);
         getUI().ifPresent(ui -> ui.navigate("login"));
     }

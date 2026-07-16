@@ -7,6 +7,7 @@ import com.github.dsquare68.homeforge.plugin.PluginMetaClient;
 import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -25,6 +26,8 @@ import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import jakarta.annotation.security.PermitAll;
 
@@ -52,12 +55,33 @@ public class Home extends AppLayout {
         HorizontalLayout navLinks = buildNavLinks();
         navLinks.addClassName("hub-nav-links");
 
-        HorizontalLayout navbar = new HorizontalLayout(toggle, title, navLinks);
+        RouterLink userLink = userNavLink();
+
+        HorizontalLayout navbar = new HorizontalLayout(toggle, title, navLinks, userLink);
         navbar.setAlignItems(FlexComponent.Alignment.CENTER);
         navbar.setFlexGrow(1, navLinks);
         navbar.addClassName("hub-navbar");
 
         addToNavbar(navbar);
+    }
+
+    private RouterLink userNavLink() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        RouterLink link = new RouterLink();
+        link.setRoute(Profile.class);
+        link.addClassName("hub-nav-link");
+
+        Avatar avatar = new Avatar(username);
+        avatar.setHeight("28px");
+        avatar.setWidth("28px");
+
+        HorizontalLayout content = new HorizontalLayout(avatar);
+        content.setAlignItems(FlexComponent.Alignment.CENTER);
+        content.setSpacing(true);
+        link.add(content);
+
+        return link;
     }
 
     private HorizontalLayout buildNavLinks() {
