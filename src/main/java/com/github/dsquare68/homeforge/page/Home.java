@@ -6,11 +6,11 @@ import com.github.dsquare68.homeforge.plugin.PluginManagerService;
 import com.github.dsquare68.homeforge.plugin.PluginMetaClient;
 import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
+import com.github.dsquare68.homeforgeapi.ui.BaseLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
@@ -34,7 +34,7 @@ import jakarta.annotation.security.PermitAll;
 @Route("home")
 @PageTitle("Dashboard | HomeForge")
 @PermitAll
-public class Home extends AppLayout {
+public class Home extends BaseLayout {
 
     public Home(PluginManagerService pluginService) {
         createNavbar();
