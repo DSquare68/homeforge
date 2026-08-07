@@ -1,6 +1,7 @@
 package com.github.dsquare68.homeforge.db;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -8,9 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.SecureRandom;
+import java.sql.SQLException;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
@@ -22,12 +25,11 @@ import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 import jakarta.annotation.PreDestroy;
 
@@ -68,20 +70,21 @@ public class HubDBProvider {
 
     private static final String ROLE_PREFIX = "plugin_";
     private static final int PASSWORD_BYTES = 24;
+    private static final int BOOTSTRAP_POOL_SIZE = 2;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final HubDBProperties properties;
+    private final DBConnection connections;
     private final Map<String, DataSource> pluginDataSources = new ConcurrentHashMap<>();
     private volatile DataSource bootstrapDataSource;
 
-    public HubDBProvider(HubDBProperties properties) {
-        this.properties = properties;
+    public HubDBProvider(DBConnection connections) {
+        this.connections = connections;
     }
 
     /** True once real PostgreSQL credentials are available for HUB itself. */
     public boolean isDatabaseConfigured() {
-        return properties.isConfigured();
+        return connections.isConnected();
     }
 
     // ------------------------------------------------------------------
@@ -136,8 +139,6 @@ public class HubDBProvider {
      * directory).
      */
     public PluginDbCredentials provision(String pluginId, String schema, Path pluginPath) {
-        requireConfigured();
-
         String role = roleNameFor(pluginId);
         requireValidIdentifier(schema, "schema");
         requireValidIdentifier(role, "role");
@@ -145,14 +146,21 @@ public class HubDBProvider {
         String password = generatePassword();
         PluginDbCredentials credentials = new PluginDbCredentials(
                 pluginId, schema, role, password,
-                pluginJdbcUrl(schema), properties.getDriverClassName());
+                connections.url(schema), connections.getDrivers());
+
+        // File first, database second. If the file cannot be written we stop
+        // before touching PostgreSQL, so no role is left behind that nothing
+        // can use. The reverse failure — file written, database statements fail
+        // — leaves credentials that do not work yet, which the next startup
+        // check spots (role missing) and re-provisions.
+        writeCredentialsFile(pluginPath, credentials);
 
         createRole(role, password);
         createSchema(schema, role);
         applyGrants(schema, role);
-        writeCredentialsFile(pluginPath, credentials);
 
-        log.info("Provisioned plugin '{}': role {} owns schema {}", pluginId, role, schema);
+        log.info("Provisioned plugin '{}': wrote {}.properties, role {} owns schema {}",
+                pluginId, pluginId, role, schema);
         return credentials;
     }
 
@@ -162,8 +170,6 @@ public class HubDBProvider {
      * disappears with the jar, but is removed explicitly when the jar is kept.
      */
     public void deprovision(String pluginId, String schema) {
-        requireConfigured();
-
         String role = roleNameFor(pluginId);
         requireValidIdentifier(schema, "schema");
         requireValidIdentifier(role, "role");
@@ -178,6 +184,56 @@ public class HubDBProvider {
         jdbc.execute("DROP ROLE IF EXISTS " + quoteIdentifier(role));
 
         log.info("Deprovisioned plugin '{}': dropped role {} and schema {}", pluginId, role, schema);
+    }
+
+    /**
+     * Reads back the {@code <plugin_id>.properties} HUB wrote into this plugin
+     * when it was installed — the schema, role and password it actually runs
+     * with. This is how the startup check learns about a plugin's schema
+     * without loading the plugin or re-provisioning it.
+     *
+     * <p>Reading is safe at any time; only <em>writing</em> the file has to
+     * happen before PF4J opens the jar.
+     *
+     * @return empty when the plugin has never been provisioned, or its file is
+     *         unreadable / incomplete
+     */
+    public Optional<PluginDbCredentials> readCredentials(Path pluginPath) {
+        String pluginId;
+        try {
+            pluginId = readIdentity(pluginPath).id();
+        } catch (RuntimeException e) {
+            log.debug("Not a readable plugin, skipping {}: {}", pluginPath, e.getMessage());
+            return Optional.empty();
+        }
+
+        String entry = credentialsFileName(pluginId);
+        try {
+            Properties properties = new Properties();
+            if (Files.isDirectory(pluginPath)) {
+                Path file = credentialsPathInDirectory(pluginPath, entry);
+                if (!Files.exists(file)) {
+                    return Optional.empty();
+                }
+                try (InputStream in = Files.newInputStream(file)) {
+                    properties.load(in);
+                }
+            } else {
+                try (FileSystem jar = FileSystems.newFileSystem(pluginPath, Map.of())) {
+                    Path file = jar.getPath("/" + entry);
+                    if (!Files.exists(file)) {
+                        return Optional.empty();
+                    }
+                    try (InputStream in = Files.newInputStream(file)) {
+                        properties.load(in);
+                    }
+                }
+            }
+            return PluginDbCredentials.parse(pluginId, properties);
+        } catch (IOException e) {
+            log.warn("Could not read {} from {}: {}", entry, pluginPath, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     /** Removes a stale {@code <plugin_id>.properties} from a plugin jar or directory. */
@@ -205,28 +261,13 @@ public class HubDBProvider {
     // Per-plugin DataSources (StorageApi)
     // ------------------------------------------------------------------
 
-    /**
-     * Returns the pooled DataSource scoped to this plugin's schema, creating
-     * both the schema and the pool on first access.
-     */
-    public DataSource dataSourceFor(PluginMetadata metadata) {
-        return dataSourceFor(metadata.schema());
-    }
-
-    /**
-     * Returns the pooled DataSource scoped to the given schema, creating both
-     * the schema and the pool on first access.
-     */
-    public DataSource dataSourceFor(String schema) {
-        return pluginDataSources.computeIfAbsent(schema, this::createSchemaDataSource);
-    }
 
     @PreDestroy
     public void shutdown() {
-        pluginDataSources.values().forEach(this::closeQuietly);
+        pluginDataSources.values().forEach(connections::close);
         pluginDataSources.clear();
         if (bootstrapDataSource != null) {
-            closeQuietly(bootstrapDataSource);
+            connections.close(bootstrapDataSource);
         }
     }
 
@@ -239,11 +280,20 @@ public class HubDBProvider {
         String quotedRole = quoteIdentifier(role);
         String literalPassword = quoteLiteral(password);
 
-        if (roleExists(jdbc, role)) {
-            jdbc.execute("ALTER ROLE " + quotedRole + " WITH LOGIN PASSWORD " + literalPassword);
-        } else {
-            jdbc.execute("CREATE ROLE " + quotedRole + " LOGIN PASSWORD " + literalPassword);
-            grantRoleToHub(jdbc, quotedRole);
+        try {
+            if (roleExists(jdbc, role)) {
+                jdbc.execute("ALTER ROLE " + quotedRole + " WITH LOGIN PASSWORD " + literalPassword);
+            } else {
+                jdbc.execute("CREATE ROLE " + quotedRole + " LOGIN PASSWORD " + literalPassword);
+                grantRoleToHub(jdbc, quotedRole);
+            }
+        } catch (DataAccessException e) {
+            throw insufficientPrivilege(e)
+                    ? new IllegalStateException("HUB's PostgreSQL user is not allowed to create roles. Grant it once:"
+                            + " ALTER ROLE " + connections.getUsername() + " CREATEROLE;"
+                            + " GRANT CREATE ON DATABASE " + connections.getDatabaseName()
+                            + " TO " + connections.getUsername() + ";", e)
+                    : e;
         }
 
         String database = databaseName();
@@ -251,7 +301,10 @@ public class HubDBProvider {
             jdbc.execute("GRANT CONNECT ON DATABASE " + quoteIdentifier(database) + " TO " + quotedRole);
         }
     }
-
+    private String databaseName() {
+        String name = connections.getDatabaseName();
+        return name != null && VALID_IDENTIFIER.matcher(name).matches() ? name : null;
+    }
     /**
      * A non-superuser HUB role needs membership in the new role before it can
      * hand it schema ownership. Superusers do not, and PostgreSQL 16+ grants it
@@ -317,7 +370,24 @@ public class HubDBProvider {
         return roleExists(jdbc, roleNameFor(identity.id())) && schemaExists(jdbc, identity.schema());
     }
 
-    // ------------------------------------------------------------------
+    /**
+     * One small privileged pool shared by every provisioning statement. Cached
+     * on purpose — a fresh Hikari pool per statement would leak connections.
+     */
+    private DataSource bootstrapDataSource() {
+        DataSource existing = bootstrapDataSource;
+        if (existing != null) {
+            return existing;
+        }
+        synchronized (this) {
+            if (bootstrapDataSource == null) {
+                bootstrapDataSource = connections.pool();
+            }
+            return bootstrapDataSource;
+        }
+    }
+
+	// ------------------------------------------------------------------
     // Credentials file
     // ------------------------------------------------------------------
 
@@ -443,20 +513,9 @@ public class HubDBProvider {
     // Connections
     // ------------------------------------------------------------------
 
-    private DataSource createSchemaDataSource(String schema) {
+    private void createSchemaDataSource(String schema) {
         requireValidIdentifier(schema, "schema");
         ensureSchemaExists(schema);
-
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(properties.getUrl());
-        config.setUsername(properties.getUsername());
-        config.setPassword(properties.getPassword());
-        config.setDriverClassName(properties.getDriverClassName());
-        config.setSchema(schema);
-        config.setPoolName("hub-plugin-" + schema);
-        config.setMaximumPoolSize(properties.getMaxPoolSize());
-
-        return new HikariDataSource(config);
     }
 
     private void ensureSchemaExists(String schema) {
@@ -467,34 +526,7 @@ public class HubDBProvider {
     private void closePool(String schema) {
         DataSource pool = pluginDataSources.remove(schema);
         if (pool != null) {
-            closeQuietly(pool);
-        }
-    }
-
-    private DataSource bootstrapDataSource() {
-        DataSource existing = bootstrapDataSource;
-        if (existing != null) {
-            return existing;
-        }
-        synchronized (this) {
-            if (bootstrapDataSource == null) {
-                HikariConfig config = new HikariConfig();
-                config.setJdbcUrl(properties.getUrl());
-                config.setUsername(properties.getUsername());
-                config.setPassword(properties.getPassword());
-                config.setDriverClassName(properties.getDriverClassName());
-                config.setSchema(properties.getDefaultSchema());
-                config.setPoolName("hub-plugin-bootstrap");
-                config.setMaximumPoolSize(2);
-                bootstrapDataSource = new HikariDataSource(config);
-            }
-            return bootstrapDataSource;
-        }
-    }
-
-    private void closeQuietly(DataSource dataSource) {
-        if (dataSource instanceof HikariDataSource hikariDataSource) {
-            hikariDataSource.close();
+            connections.close(pool);
         }
     }
 
@@ -502,54 +534,33 @@ public class HubDBProvider {
     // Helpers
     // ------------------------------------------------------------------
 
-    /** The URL handed to the plugin, pinned to its own schema. */
-    private String pluginJdbcUrl(String schema) {
-        String url = properties.getUrl();
-        int queryStart = url.indexOf('?');
-        if (queryStart < 0) {
-            return url + "?currentSchema=" + schema;
-        }
-
-        String base = url.substring(0, queryStart);
-        String kept = java.util.Arrays.stream(url.substring(queryStart + 1).split("&"))
-                .filter(param -> !param.isBlank() && !param.startsWith("currentSchema="))
-                .reduce((a, b) -> a + "&" + b)
-                .orElse("");
-        return kept.isEmpty()
-                ? base + "?currentSchema=" + schema
-                : base + "?" + kept + "&currentSchema=" + schema;
-    }
-
-    /** Database name out of {@code jdbc:postgresql://host:port/name?params}. */
-    private String databaseName() {
-        String url = properties.getUrl();
-        int queryStart = url.indexOf('?');
-        String withoutQuery = queryStart < 0 ? url : url.substring(0, queryStart);
-        int lastSlash = withoutQuery.lastIndexOf('/');
-        if (lastSlash < 0 || lastSlash == withoutQuery.length() - 1) {
-            return null;
-        }
-        String name = withoutQuery.substring(lastSlash + 1);
-        return VALID_IDENTIFIER.matcher(name).matches() ? name : null;
-    }
-
     private String generatePassword() {
         byte[] bytes = new byte[PASSWORD_BYTES];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private void requireConfigured() {
-        if (!properties.isConfigured()) {
-            throw new IllegalStateException(
-                    "PostgreSQL is not configured yet — cannot provision plugin databases.");
-        }
-    }
-
     private void requireValidIdentifier(String value, String what) {
         if (value == null || !VALID_IDENTIFIER.matcher(value).matches()) {
             throw new IllegalArgumentException("Invalid plugin " + what + " name: " + value);
         }
+    }
+
+    /**
+     * PostgreSQL reports "permission denied to create role" with SQLState
+     * 42501, which Spring lumps in with syntax errors as
+     * {@code BadSqlGrammarException} — so the statement looks malformed when it
+     * is really a missing privilege.
+     */
+    private boolean insufficientPrivilege(DataAccessException e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof SQLException sqlException && "42501".equals(sqlException.getSQLState())) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private String quoteIdentifier(String identifier) {

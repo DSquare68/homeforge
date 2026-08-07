@@ -7,7 +7,7 @@ import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.github.dsquare68.homeforge.db.HubDBProperties;
+import com.github.dsquare68.homeforge.db.DBConnection;
 import com.github.dsquare68.homeforge.model.User;
 import com.github.dsquare68.homeforge.security.Roles;
 import com.github.dsquare68.homeforge.services.UserService;
@@ -52,12 +52,12 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
     @Autowired
     UserService userService;
     @Autowired
-    HubDBProperties hubDBProperties;
+    DBConnection connection;
 
     private final boolean needsDatabaseSetup;
 
-    public SignIn(UserService userService, HubDBProperties hubDBProperties) {
-        this.needsDatabaseSetup = !hubDBProperties.isConfigured();
+    public SignIn(UserService userService, DBConnection connection) {
+        this.needsDatabaseSetup = !connection.isConnected();
 
         setSizeFull();
         setAlignItems(Alignment.CENTER);
@@ -199,7 +199,7 @@ public class SignIn extends VerticalLayout implements BeforeEnterObserver {
     public void beforeEnter(BeforeEnterEvent event) {
         // Without a configured DB there is no way any user could already
         // exist, so skip the query entirely and let first-run setup proceed.
-        if (!hubDBProperties.isConfigured()) {
+        if (!connection.isConnected()) {
             event.forwardTo("login");
         }
     }

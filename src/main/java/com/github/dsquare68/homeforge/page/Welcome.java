@@ -1,6 +1,5 @@
 package com.github.dsquare68.homeforge.page;
 
-import com.github.dsquare68.homeforge.db.HubDBProperties;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
