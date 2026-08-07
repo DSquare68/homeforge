@@ -1,6 +1,8 @@
 package com.github.dsquare68.homeforge.db;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.Properties;
 
 /**
  * The PostgreSQL login HUB provisions for a single plugin at install time.
@@ -37,6 +39,29 @@ public record PluginDbCredentials(
     public static final String KEY_PASSWORD = "db.password";
     public static final String KEY_SCHEMA = "db.schema";
     public static final String KEY_DRIVER = "db.driver-class-name";
+
+    /**
+     * Reads back a credentials file HUB wrote earlier — how the startup check
+     * learns which schema each installed plugin owns without loading the plugin.
+     *
+     * @return empty when the file is missing the keys that make it usable
+     */
+    public static Optional<PluginDbCredentials> parse(String pluginId, Properties properties) {
+        String schema = properties.getProperty(KEY_SCHEMA);
+        String username = properties.getProperty(KEY_USERNAME);
+        String password = properties.getProperty(KEY_PASSWORD);
+        String url = properties.getProperty(KEY_URL);
+
+        if (isBlank(schema) || isBlank(username) || isBlank(password) || isBlank(url)) {
+            return Optional.empty();
+        }
+        return Optional.of(new PluginDbCredentials(pluginId, schema, username, password, url,
+                properties.getProperty(KEY_DRIVER)));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 
     /**
      * Renders the file content HUB writes into the plugin jar. Written by hand
