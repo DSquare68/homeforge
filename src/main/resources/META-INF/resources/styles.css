@@ -75,16 +75,12 @@
 
 /* Items: generous padding, big icons */
 .hub-sidenav-item::part(content) {
-    padding: var(--lumo-space-m) var(--lumo-space-m);
-    gap: var(--lumo-space-m);
     font-size: var(--lumo-font-size-m);
     font-weight: 500;
 }
 
 .hub-sidenav-item [slot='prefix'] .hub-icon,
 .hub-sidenav-item [slot='prefix'] img.hub-icon {
-    width: 28px;
-    height: 28px;
     color: var(--lumo-secondary-text-color);
     flex-shrink: 0;
 }
