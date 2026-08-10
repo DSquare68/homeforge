@@ -73,8 +73,8 @@ public class Home extends BaseLayout {
         link.addClassName("hub-nav-link");
 
         Avatar avatar = new Avatar(username);
-        avatar.setHeight("28px");
-        avatar.setWidth("28px");
+        avatar.setHeight("42px");
+        avatar.setWidth("42px");
 
         HorizontalLayout content = new HorizontalLayout(avatar);
         content.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -150,7 +150,7 @@ public class Home extends BaseLayout {
         SideNavItem item = new SideNavItem(meta.name(), path);
 
         item.setPrefixComponent(pluginIcon(plugin));
-        item.addClassName("hub-sidenav-item");
+		item.addClassName("hub-sidenav-item");
 
         return item;
     }
@@ -158,11 +158,10 @@ public class Home extends BaseLayout {
     private Component pluginIcon(HubPlugin plugin) {
         byte[] bytes = plugin.getIconBytes();
         if (bytes != null) {
-            StreamResource res = new StreamResource("icon",
-                    () -> new java.io.ByteArrayInputStream(bytes));
-            Image img = new Image(res, plugin.getMetadata().name());
-            img.setWidth("24px");
-            img.setHeight("24px");
+            Image img = new Image(bytes, plugin.getMetadata().name());
+            img.setWidth("5em");
+            img.setHeight("5em");
+            
             return img;
         }
         return new Icon(VaadinIcon.PUZZLE_PIECE);
