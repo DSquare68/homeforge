@@ -29,6 +29,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import com.github.dsquare68.homeforgeapi.db.TableApi;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
 
 import jakarta.annotation.PreDestroy;
@@ -52,10 +53,14 @@ import jakarta.annotation.PreDestroy;
  * sees the scoped role generated for it, which owns its schema and has no
  * grants on {@code hub_schema} or any other plugin's schema.
  *
- * <p>Tables are <em>not</em> created here: HUB cannot know a plugin's data
- * model. The provisioned role owns its schema, so the plugin creates its own
- * tables from its own migrations (see the plugin template's Flyway setup) using
- * the credentials written into its jar.
+ * <p>Table definitions are <em>not</em> written here: HUB cannot know a plugin's
+ * data model. The provisioned role owns its schema, so the plugin creates its
+ * own tables — through {@code db().tables()} or its own Flyway migrations —
+ * using the credentials written into its jar. What this class adds is the two
+ * correctly-scoped entry points to the same {@link TableApi}:
+ * {@link #hubTables()} for HUB's own schema and
+ * {@link #tablesFor(PluginDbCredentials)} for a plugin's, each running as its
+ * own PostgreSQL role.
  */
 @Component
 public class HubDBProvider {
@@ -258,7 +263,52 @@ public class HubDBProvider {
     }
 
     // ------------------------------------------------------------------
-    // Per-plugin DataSources (StorageApi)
+    // Tables
+    // ------------------------------------------------------------------
+
+    /**
+     * Creating and inspecting HUB's own tables, as the HUB master role inside
+     * {@code hub_schema}.
+     *
+     * <pre>{@code
+     * hubDb.hubTables().create(TableSpec.table("plugins")
+     *         .column(Column.id())
+     *         .column(Column.text("plugin_id").notNull().unique())
+     *         .column(Column.timestamp("installed_at").notNull().defaultNow()));
+     * }</pre>
+     *
+     * <p>Runs on the same privileged pool provisioning uses, so it can reach
+     * every schema in the database. Keep it on the host side: handing this to a
+     * plugin would create that plugin's tables owned by the master role and
+     * undo the per-plugin ownership set up at install time — plugins call
+     * {@code db().tables()}, which is the same API on their own role.
+     */
+    public TableApi hubTables() {
+        return TableApi.on(bootstrapDataSource(), connections.getSchema());
+    }
+
+    /**
+     * The same API against a plugin's schema, running as <em>that plugin's</em>
+     * role rather than HUB's.
+     *
+     * <p>For the window where HUB acts on a plugin's behalf but the plugin's own
+     * classes are not loaded yet — install-time setup driven from the host. The
+     * tables it creates end up owned by the plugin role, exactly as if the
+     * plugin had created them itself, so nothing is left behind that the plugin
+     * cannot later alter or that survives {@link #deprovision(String, String)}.
+     *
+     * <p>The pool is cached per schema and closed on uninstall and shutdown.
+     */
+    public TableApi tablesFor(PluginDbCredentials credentials) {
+        requireValidIdentifier(credentials.schema(), "schema");
+        DataSource pool = pluginDataSources.computeIfAbsent(credentials.schema(),
+                schema -> connections.pool(credentials.pluginId() + "-hub-pool", schema,
+                        credentials.role(), credentials.password()));
+        return TableApi.on(pool, credentials.schema());
+    }
+
+    // ------------------------------------------------------------------
+    // Per-plugin DataSources
     // ------------------------------------------------------------------
 
 
