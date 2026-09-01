@@ -37,7 +37,11 @@ public class SecurityConfiguration {
                 // is enforced by Vaadin annotations (@AnonymousAllowed / @PermitAll).
                 .requestMatchers("/").permitAll()
         		.requestMatchers("/register").permitAll()
-        		.requestMatchers("/sign-in").permitAll());
+        		.requestMatchers("/sign-in").permitAll()
+        		// Every plugin REST route lands here (see PluginControllerRegistrar).
+        		// One rule for all of them, with no per-plugin override mechanism -
+        		// plugins never configure their own security.
+        		.requestMatchers("/api/plugins/**").authenticated());
 
         http.with(VaadinSecurityConfigurer.vaadin(), configurer -> {
             configurer.loginView(Login.class);
