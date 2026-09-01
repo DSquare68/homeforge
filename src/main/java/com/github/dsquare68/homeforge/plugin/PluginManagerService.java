@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 import org.pf4j.DefaultPluginManager;
 import org.pf4j.PluginManager;
+import org.pf4j.PluginState;
+import org.pf4j.PluginWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -46,6 +48,7 @@ public class PluginManagerService {
     public static final int STARTUP_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
     private final HubDBProvider hubDb;
+    private final PluginLifecycleCoordinator lifecycleCoordinator;
 
     /**
      * Resolved lazily to break the cycle with {@code StartupCheck}, which needs
@@ -58,8 +61,10 @@ public class PluginManagerService {
 
     private PluginManager pluginManager;
 
-    public PluginManagerService(HubDBProvider hubDb, ObjectProvider<StartupCheck> startupCheck) {
+    public PluginManagerService(HubDBProvider hubDb, PluginLifecycleCoordinator lifecycleCoordinator,
+            ObjectProvider<StartupCheck> startupCheck) {
         this.hubDb = hubDb;
+        this.lifecycleCoordinator = lifecycleCoordinator;
         this.startupCheck = startupCheck;
     }
 
@@ -97,6 +102,10 @@ public class PluginManagerService {
         provisionMissingPlugins(dir);
 
         pluginManager = new DefaultPluginManager(dir);
+        // Attached before loadPlugins()/startPlugins() so boot-time starts fire
+        // the same STARTED events as any later runtime start/stop - a single
+        // code path for both, see PluginLifecycleCoordinator.
+        pluginManager.addPluginStateListener(lifecycleCoordinator);
         pluginManager.loadPlugins();
         pluginManager.startPlugins();
 
@@ -140,6 +149,7 @@ public class PluginManagerService {
                     installedPlugins.size(), installedPlugins.keySet());
         } else {
             log.info("Added {} new plugin(s): {}", added.size(), added);
+            lifecycleCoordinator.markFreshlyInstalled(added);
         }
     }
 
@@ -222,6 +232,56 @@ public class PluginManagerService {
      */
     public PluginManager raw() {
         return pluginManager;
+    }
+
+    /**
+     * Starts (or re-starts) a plugin already known to PF4J. Fires
+     * {@link PluginLifecycleCoordinator} via the normal PF4J state-change
+     * event, exactly as boot-time startup does.
+     */
+    public PluginState activatePlugin(String pluginId) {
+        return pluginManager.startPlugin(pluginId);
+    }
+
+    /**
+     * Stops a plugin without removing it - its database role/schema and
+     * credentials file are untouched, so {@link #activatePlugin(String)}
+     * brings it back with no re-provisioning needed.
+     */
+    public PluginState deactivatePlugin(String pluginId) {
+        return pluginManager.stopPlugin(pluginId);
+    }
+
+    /**
+     * Permanently removes a plugin: stops it if running, calls
+     * {@code HubPlugin#onUninstall()}, drops its PostgreSQL role and schema,
+     * deletes its jar (which takes the credentials file with it), and forgets
+     * it. This is the "Removal Process" from the architecture doc - nothing
+     * else in the codebase currently calls
+     * {@link HubDBProvider#deprovision(String, String)}, so this is the only
+     * path that actually cleans up a plugin's database footprint.
+     */
+    public boolean uninstallPlugin(String pluginId) {
+        PluginWrapper wrapper = pluginManager.getPlugin(pluginId);
+        if (wrapper == null) {
+            return false;
+        }
+
+        for (HubPlugin plugin : pluginManager.getExtensions(HubPlugin.class, pluginId)) {
+            try {
+                plugin.onUninstall();
+            } catch (RuntimeException e) {
+                log.error("Plugin '{}' failed during onUninstall: {}", pluginId, e.getMessage(), e);
+            }
+        }
+
+        PluginDbCredentials credentials = installedPlugins.remove(pluginId);
+        boolean deleted = pluginManager.deletePlugin(pluginId);
+
+        if (credentials != null) {
+            hubDb.deprovision(pluginId, credentials.schema());
+        }
+        return deleted;
     }
 
     @PreDestroy

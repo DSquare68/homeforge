@@ -2,8 +2,10 @@ package com.github.dsquare68.homeforge.page;
 
 import java.util.List;
 
+import com.github.dsquare68.homeforge.hubapi.DashboardApiImpl;
 import com.github.dsquare68.homeforge.plugin.PluginManagerService;
 import com.github.dsquare68.homeforge.plugin.PluginMetaClient;
+import com.github.dsquare68.homeforgeapi.dashboard.WidgetDescriptor;
 import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
 import com.github.dsquare68.homeforgeapi.ui.BaseLayout;
@@ -36,7 +38,10 @@ import jakarta.annotation.security.PermitAll;
 @PermitAll
 public class Home extends BaseLayout {
 
-    public Home(PluginManagerService pluginService) {
+    private final DashboardApiImpl dashboardApi;
+
+    public Home(PluginManagerService pluginService, DashboardApiImpl dashboardApi) {
+        this.dashboardApi = dashboardApi;
         createNavbar();
         createSidebar(pluginService.getActivePluginInstances());
         createContent();
@@ -176,7 +181,33 @@ public class Home extends BaseLayout {
         content.addClassName("hub-content");
         content.add(new H2("Dashboard"));
         content.add(new Paragraph("You are logged in."));
+        content.add(buildWidgets());
         setContent(content);
+    }
+
+    private Component buildWidgets() {
+        List<WidgetDescriptor> widgets = dashboardApi.widgets();
+        if (widgets.isEmpty()) {
+            return new Span();
+        }
+
+        HorizontalLayout row = new HorizontalLayout();
+        row.addClassName("hub-dashboard-widgets");
+        for (WidgetDescriptor widget : widgets) {
+            row.add(widgetCard(widget));
+        }
+        return row;
+    }
+
+    private VerticalLayout widgetCard(WidgetDescriptor widget) {
+        VerticalLayout card = new VerticalLayout();
+        card.addClassName("hub-dashboard-widget");
+        card.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-20pct)")
+                .set("border-radius", "var(--lumo-border-radius-m)")
+                .set("padding", "var(--lumo-space-m)");
+        card.add(new Span(widget.title()));
+        return card;
     }
 
     // -------------------------------------------------------------------------

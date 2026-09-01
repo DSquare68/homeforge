@@ -44,8 +44,9 @@ import jakarta.annotation.PreDestroy;
  *       inside the plugin jar, so the plugin can read them as a classpath
  *       resource and open its own connection pool</li>
  *   <li>revoking all of it again on uninstall ({@link #deprovision(String, String)})</li>
- *   <li>vending a pooled {@link DataSource} per plugin schema, backing
- *       {@code StorageApi#dataSource()}</li>
+ *   <li>vending a pooled {@link DataSource} per plugin schema, used by
+ *       {@link #tablesFor(PluginDbCredentials)} to run DDL as the plugin's
+ *       own role before its classes are loaded</li>
  * </ul>
  *
  * <p>Provisioning runs with HUB's own (privileged) credentials from
