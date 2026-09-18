@@ -9,15 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.pf4j.DefaultPluginManager;
 import org.pf4j.PluginManager;
 import org.pf4j.PluginState;
 import org.pf4j.PluginWrapper;
+import org.pf4j.spring.SpringPluginManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.core.Ordered;
@@ -49,6 +50,7 @@ public class PluginManagerService {
 
     private final HubDBProvider hubDb;
     private final PluginLifecycleCoordinator lifecycleCoordinator;
+    private final ConfigurableApplicationContext applicationContext;
 
     /**
      * Resolved lazily to break the cycle with {@code StartupCheck}, which needs
@@ -59,12 +61,13 @@ public class PluginManagerService {
     /** Every installed plugin's database credentials, keyed by plugin id, in install order. */
     private final Map<String, PluginDbCredentials> installedPlugins = new LinkedHashMap<>();
 
-    private PluginManager pluginManager;
+    private SpringPluginManager pluginManager;
 
     public PluginManagerService(HubDBProvider hubDb, PluginLifecycleCoordinator lifecycleCoordinator,
-            ObjectProvider<StartupCheck> startupCheck) {
+            ConfigurableApplicationContext applicationContext, ObjectProvider<StartupCheck> startupCheck) {
         this.hubDb = hubDb;
         this.lifecycleCoordinator = lifecycleCoordinator;
+        this.applicationContext = applicationContext;
         this.startupCheck = startupCheck;
     }
 
@@ -101,7 +104,8 @@ public class PluginManagerService {
 
         provisionMissingPlugins(dir);
 
-        pluginManager = new DefaultPluginManager(dir);
+        pluginManager = new HubPluginManager(dir);
+        pluginManager.setApplicationContext(applicationContext);
         // Attached before loadPlugins()/startPlugins() so boot-time starts fire
         // the same STARTED events as any later runtime start/stop - a single
         // code path for both, see PluginLifecycleCoordinator.

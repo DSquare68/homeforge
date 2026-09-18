@@ -25,9 +25,10 @@ import com.github.dsquare68.homeforgeapi.spi.PluginMetadata;
  *
  * <ul>
  *   <li>{@code STARTED} — call {@code onInstall}/{@code onActivate}, then
- *       register the plugin's REST controllers and Vaadin routes</li>
+ *       register the plugin's REST controllers, Vaadin routes, and
+ *       {@code @Extension} classes (as Spring beans)</li>
  *   <li>{@code STOPPED}/{@code DISABLED} (from {@code STARTED}) — unregister
- *       both, then call {@code onDeactivate}</li>
+ *       all three, then call {@code onDeactivate}</li>
  * </ul>
  *
  * <p>Permanent removal ({@code onUninstall} plus dropping the plugin's
@@ -43,15 +44,17 @@ public class PluginLifecycleCoordinator implements PluginStateListener {
     private final HubApi hubApi;
     private final PluginControllerRegistrar controllerRegistrar;
     private final PluginRouteRegistrar routeRegistrar;
+    private final PluginExtensionRegistrar extensionRegistrar;
 
     /** Plugin ids provisioned for the first time this run - see {@link #markFreshlyInstalled}. */
     private final Set<String> freshlyInstalledPluginIds = ConcurrentHashMap.newKeySet();
 
     public PluginLifecycleCoordinator(HubApi hubApi, PluginControllerRegistrar controllerRegistrar,
-            PluginRouteRegistrar routeRegistrar) {
+            PluginRouteRegistrar routeRegistrar, PluginExtensionRegistrar extensionRegistrar) {
         this.hubApi = hubApi;
         this.controllerRegistrar = controllerRegistrar;
         this.routeRegistrar = routeRegistrar;
+        this.extensionRegistrar = extensionRegistrar;
     }
 
     /**
@@ -92,6 +95,7 @@ public class PluginLifecycleCoordinator implements PluginStateListener {
                 PluginMetadata meta = plugin.getMetadata();
                 controllerRegistrar.register(pluginId, plugin.restControllers());
                 routeRegistrar.register(pluginId, meta.path(), plugin.routes());
+                extensionRegistrar.register(pluginId, manager);
             } catch (RuntimeException e) {
                 log.error("Failed to activate plugin '{}': {}", pluginId, e.getMessage(), e);
             }
@@ -101,6 +105,7 @@ public class PluginLifecycleCoordinator implements PluginStateListener {
     private void handleStopped(PluginManager manager, String pluginId) {
         controllerRegistrar.unregister(pluginId);
         routeRegistrar.unregister(pluginId);
+        extensionRegistrar.unregister(pluginId, manager);
 
         for (HubPlugin plugin : manager.getExtensions(HubPlugin.class, pluginId)) {
             try {

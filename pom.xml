@@ -9,7 +9,7 @@
     <properties>
         <java.version>21</java.version>
         <vaadin.version>25.1.7</vaadin.version>
-        <pf4j.version>3.12.0</pf4j.version>
+        <pf4j-spring.version>0.10.0</pf4j-spring.version>
     </properties>
     
     <parent>
@@ -90,8 +90,8 @@
         <!-- PF4J: host must declare compile scope; plugins declare it as provided -->
         <dependency>
             <groupId>org.pf4j</groupId>
-            <artifactId>pf4j</artifactId>
-            <version>${pf4j.version}</version>
+            <artifactId>pf4j-spring</artifactId>
+            <version>${pf4j-spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
