@@ -1,10 +1,15 @@
 package com.github.dsquare68.homeforge.hubapi;
 
+import java.util.List;
+
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
+import com.github.dsquare68.homeforge.plugin.PluginManagerService;
 import com.github.dsquare68.homeforgeapi.dashboard.DashboardApi;
 import com.github.dsquare68.homeforgeapi.notification.NotificationApi;
 import com.github.dsquare68.homeforgeapi.spi.HubApi;
+import com.github.dsquare68.homeforgeapi.spi.HubPlugin;
 import com.github.dsquare68.homeforgeapi.user.UserApi;
 
 /**
@@ -20,11 +25,19 @@ public class HubApiImpl implements HubApi {
     private final NotificationApi notificationApi;
     private final DashboardApi dashboardApi;
 
+    /**
+     * Resolved lazily: {@code PluginManagerService} depends (via
+     * {@code PluginLifecycleCoordinator}) on this very bean, so a direct
+     * constructor dependency would be circular.
+     */
+    private final ObjectProvider<PluginManagerService> pluginManagerService;
+
     public HubApiImpl(UserApi userApi, NotificationApi notificationApi,
-            DashboardApi dashboardApi) {
+            DashboardApi dashboardApi, ObjectProvider<PluginManagerService> pluginManagerService) {
         this.userApi = userApi;
         this.notificationApi = notificationApi;
         this.dashboardApi = dashboardApi;
+        this.pluginManagerService = pluginManagerService;
     }
 
     @Override
@@ -40,5 +53,11 @@ public class HubApiImpl implements HubApi {
     @Override
     public DashboardApi dashboard() {
         return dashboardApi;
+    }
+
+    @Override
+    public List<HubPlugin> activePlugins() {
+        PluginManagerService service = pluginManagerService.getIfAvailable();
+        return service != null ? service.getActivePluginInstances() : List.of();
     }
 }
