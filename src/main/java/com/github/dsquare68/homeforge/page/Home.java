@@ -15,12 +15,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-/**
- * HUB's own dashboard page. The navbar/drawer chrome comes from
- * {@link BaseLayout}'s constructor - shared with every plugin route - so
- * this class only has to add its own body content.
- */
-@Route("home")
+@Route("")
 @PageTitle("Dashboard | HomeForge")
 public class Home extends BaseLayout {
 

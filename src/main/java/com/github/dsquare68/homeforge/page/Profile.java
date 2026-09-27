@@ -93,7 +93,7 @@ public class Profile extends VerticalLayout implements BeforeEnterObserver {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Optional<User> found = userService.getUser(username);
         if (found.isEmpty()) {
-            event.forwardTo("home");
+            event.forwardTo("");
             return;
         }
         this.user = found.get();

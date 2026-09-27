@@ -121,7 +121,7 @@ public class Login extends VerticalLayout implements BeforeEnterObserver {
 			// bootstrapped under the now-authenticated session. Re-using the old
 			// UI created under the anonymous session causes "Connection lost".
 			login.close();
-			getUI().ifPresent(ui -> ui.getPage().setLocation("home"));
+			getUI().ifPresent(ui -> ui.getPage().setLocation("/"));
 			return null;
 		}
 	}

@@ -1,15 +1,23 @@
 package com.github.dsquare68.homeforge.page;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 @AnonymousAllowed
-@Route("")
-public class Welcome extends VerticalLayout {
+@Route("welcome")
+public class Welcome extends VerticalLayout implements BeforeEnterObserver {
+
+
 
 	public Welcome() {
 		setSizeFull();
@@ -35,6 +43,18 @@ public class Welcome extends VerticalLayout {
 		signUpButton.getStyle().set("background", "1D1DD1")
 								.set("font-size", "3rem");
 		add(title, subtitle,signInButton, signUpButton);
+	}
+
+	@Override
+	public void beforeEnter(BeforeEnterEvent event) {
+		// TODO Auto-generated method stub
+		 if (connection.isConnected()) {
+	            event.forwardTo("sign-in");
+	            return;
+	        }
+	        if (event.getLocation().getQueryParameters().getParameters().containsKey("error")) {
+	            login.setError(true);
+	        }
 	}
 
 }
