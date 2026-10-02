@@ -47,14 +47,12 @@ public class Welcome extends VerticalLayout implements BeforeEnterObserver {
 
 	@Override
 	public void beforeEnter(BeforeEnterEvent event) {
-		// TODO Auto-generated method stub
-		 if (connection.isConnected()) {
-	            event.forwardTo("sign-in");
-	            return;
-	        }
-	        if (event.getLocation().getQueryParameters().getParameters().containsKey("error")) {
-	            login.setError(true);
-	        }
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication != null
+				&& authentication.isAuthenticated()
+				&& !(authentication instanceof AnonymousAuthenticationToken)) {
+			event.forwardTo(Home.class);
+		}
 	}
 
 }
