@@ -53,8 +53,10 @@ public class SecurityConfiguration {
         		.requestMatchers("/sign-in").permitAll()
         		// Every plugin REST route lands here (see PluginControllerRegistrar).
         		// One rule for all of them, with no per-plugin override mechanism -
-        		// plugins never configure their own security.
-        		.requestMatchers("/api/plugins/**").authenticated());
+        		// plugins never configure their own security. Open to anonymous
+        		// callers, so plugin controllers must do their own checks (e.g. via
+        		// hubApi.user()) for anything that needs a logged-in user.
+        		.requestMatchers("/api/plugins/**").permitAll());
 
         // Issues a persistent login cookie on every successful login (no
         // checkbox: Vaadin's LoginOverlay custom-form-area fields aren't
